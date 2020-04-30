@@ -1,0 +1,41 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: '**'
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # Skips CI on commit message 'push', '***NO_CI***', '[ci skip]', or [skip ci]
+    if: github.event_name == 'push' && contains(toJson(github.event.commits), '***NO_CI***') == false && contains(toJson(github.event.commits), '[ci skip]') == false && contains(toJson(github.event.commits), '[skip ci]') == false
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Change uppercase strings to lowercase for Docker
+      run: |
+        echo "::set-env name=DOCKER_BUILDKIT::1"
+        echo "::set-env name=REPOSITORY_LOWERCASE::iexalt/$(echo $GITHUB_REPOSITORY | cut -d/ -f 2 | awk '{print tolower($0)}')"
+        echo ${GITHUB_REF#refs/heads/} | awk 'BEGIN{printf("%s", "::set-env name=BRANCH_LOWERCASE::")} {print tolower($0)}'
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v1.0.1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: ${{ env.REPOSITORY_LOWERCASE }}
+        tags: ${{ env.BRANCH_LOWERCASE }}-continuous-${{ github.run_number }}, ${{ env.BRANCH_LOWERCASE }}
+        tag_with_sha: true
+        push: true
+        add_git_labels: true
