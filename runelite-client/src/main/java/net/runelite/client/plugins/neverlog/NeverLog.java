@@ -8,6 +8,10 @@ package net.runelite.client.plugins.neverlog;
 
 import com.google.gson.Gson;
 import java.awt.event.KeyEvent;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -63,10 +67,10 @@ public void onGameTick(GameTick event)
 //		System.out.println("Ticked");
         if (timer > 10) {
                 Executors.newSingleThreadExecutor().submit(this::getInventory);
-//                this.getInventory();
                 Executors.newSingleThreadExecutor().submit(this::getGEOffers);
+                //                this.getInventory();
+                //                this.getGEOffers();
 
-//                this.getGEOffers();
                 timer = 0;
         }
 
@@ -104,21 +108,21 @@ private static double clamp(double val)
 
 class ItemDetailed
 {
-  public int id;
-  public int quantity;
-  public int slot;
+public int id;
+public int quantity;
+public int slot;
 
-  public ItemDetailed() {
-    this.id = -1;
-    this.quantity = -1;
-    this.slot = -1;
-  }
+public ItemDetailed() {
+        this.id = -1;
+        this.quantity = -1;
+        this.slot = -1;
+}
 
-  public ItemDetailed(Item item, int slot) {
-    this.id = item.id;
-    this.quantity = item.quantity;
-    this.slot = slot;
-  }
+public ItemDetailed(Item item, int slot) {
+        this.id = item.id;
+        this.quantity = item.quantity;
+        this.slot = slot;
+}
 }
 
 private void getInventory()
@@ -135,11 +139,7 @@ private void getInventory()
                 }
                 if (item.getQuantity() > 0)
                 {
-                        // System.out.println("ID: " + item.id);
-                        // System.out.println("Quantity: " + item.quantity);
-                        // System.out.println("Slot: " + i);
-                        // System.out.println("");
-                  items.add(new ItemDetailed(item, slot));
+                        items.add(new ItemDetailed(item, slot));
                 } else {
                         System.out.println("No item found!");
                 }
@@ -152,59 +152,65 @@ private void getInventory()
         String json = gson.toJson(container);
         System.out.println(json);
 
+        if (new File("/tmp/runelite.fifo").isFile()) {
+                try {
+                        Files.write(Paths.get("/tmp/runelite.fifo"), json.getBytes());
+                } catch (IOException e) {
+                        System.out.println("Couldn't write to fifo!");
+                }
+        } else {
+                System.out.println("FIFO doesn't exist!");
+        }
 }
 
 class GrandExchangeOfferClass
 {
-  public int quantity;
-  public int id;
-  public int total_quantity;
-  public int price;
-  public int gold;
-  public String offer_state;
+public int quantity;
+public int id;
+public int total_quantity;
+public int price;
+public int gold;
+public String offer_state;
 
-  public GrandExchangeOfferClass() {
-    this.quantity = -1;
-    this.id = -1;
-    this.total_quantity =  -1;
-    this.price = -1;
-    this.gold = -1;
-    this.offer_state = "uninitialized";
-  }
+public GrandExchangeOfferClass() {
+        this.quantity = -1;
+        this.id = -1;
+        this.total_quantity =  -1;
+        this.price = -1;
+        this.gold = -1;
+        this.offer_state = "uninitialized";
+}
 
-  public GrandExchangeOfferClass(GrandExchangeOffer offer) {
-    this.quantity = offer.getQuantitySold();
-    this.id = offer.getItemId();
-    this.total_quantity = offer.getTotalQuantity();
-    this.price = offer.getPrice();
-    this.gold = offer.getSpent();
-    switch(offer.getState()) {
-      case EMPTY: this.offer_state = "empty";
-                  break;
-      case CANCELLED_BUY: this.offer_state = "cancelled_buy";
-                  break;
-      case CANCELLED_SELL: this.offer_state = "cancelled_sell";
-                  break;
-      case BUYING: this.offer_state = "buying";
-                  break;
-      case BOUGHT: this.offer_state = "bought";
-                  break;
-      case SELLING: this.offer_state = "selling";
-                  break;
-      case SOLD: this.offer_state = "sold";
-                  break;
-    }
-  }
+public GrandExchangeOfferClass(GrandExchangeOffer offer) {
+        this.quantity = offer.getQuantitySold();
+        this.id = offer.getItemId();
+        this.total_quantity = offer.getTotalQuantity();
+        this.price = offer.getPrice();
+        this.gold = offer.getSpent();
+        switch(offer.getState()) {
+        case EMPTY: this.offer_state = "empty";
+                break;
+        case CANCELLED_BUY: this.offer_state = "cancelled_buy";
+                break;
+        case CANCELLED_SELL: this.offer_state = "cancelled_sell";
+                break;
+        case BUYING: this.offer_state = "buying";
+                break;
+        case BOUGHT: this.offer_state = "bought";
+                break;
+        case SELLING: this.offer_state = "selling";
+                break;
+        case SOLD: this.offer_state = "sold";
+                break;
+        }
+}
 }
 
 private void getGEOffers() {
         GrandExchangeOffer[] geOfferInterfaces = client.getGrandExchangeOffers();
-//        GrandExchangeOfferClass[] geOffers = new GrandExchangeOfferClass(geOfferInterfaces.length);
         List<GrandExchangeOfferClass> geOffers = new ArrayList<GrandExchangeOfferClass>();
         for (GrandExchangeOffer offerInterface : geOfferInterfaces) {
-//        for (int i = 0; i < geOfferInterfaces.length; i++) {
-//            geOffers[i] = new GrandExchangeOfferClass(geOfferInterfaces[i]);
-            geOffers.add(new GrandExchangeOfferClass(offerInterface));
+                geOffers.add(new GrandExchangeOfferClass(offerInterface));
         }
 
         Gson gson = new Gson();
@@ -215,22 +221,14 @@ private void getGEOffers() {
         String json = gson.toJson(container);
         System.out.println(json);
 
-
-
-        // boolean buying = newOffer.getState() == GrandExchangeOfferState.BOUGHT
-        //                  || newOffer.getState() == GrandExchangeOfferState.BUYING
-        //                  || newOffer.getState() == GrandExchangeOfferState.CANCELLED_BUY;
-        // String offerState = (buying ? "Bought " : "Sold ")
-        //                     + QuantityFormatter.quantityToRSDecimalStack(newOffer.getQuantitySold()) + " / "
-        //                     + QuantityFormatter.quantityToRSDecimalStack(newOffer.getTotalQuantity());
-        //
-        // offerInfo.setText(offerState);
-        //
-        // itemPrice.setText(htmlLabel("Price each: ", QuantityFormatter.formatNumber(newOffer.getPrice())));
-        //
-        // String action = buying ? "Spent: " : "Received: ";
-        //
-        // offerSpent.setText(htmlLabel(action, QuantityFormatter.formatNumber(newOffer.getSpent()) + " / "
-        //                              + QuantityFormatter.formatNumber(newOffer.getPrice() * newOffer.getTotalQuantity())));
+        if (new File("/tmp/runelite.fifo").isFile()) {
+                try {
+                        Files.write(Paths.get("/tmp/runelite.fifo"), json.getBytes());
+                } catch (IOException e) {
+                        System.out.println("Couldn't write to fifo!");
+                }
+        } else {
+                System.out.println("FIFO doesn't exist!");
+        }
 }
 }
