@@ -143,7 +143,7 @@ public class NeverLog extends Plugin {
         // System.out.println(json);
 
         try {
-            Files.write(Paths.get("/tmp/runelite.fifo"), json.getBytes());
+            Files.write(Paths.get("/tmp/runelite.fifo"), (json + System.lineSeparator()).getBytes());
         } catch (IOException e) {
             System.out.println("Couldn't write to fifo!");
         }
@@ -214,7 +214,7 @@ public class NeverLog extends Plugin {
         // System.out.println(json);
 
         try {
-            Files.write(Paths.get("/tmp/runelite.fifo"), json.getBytes());
+            Files.write(Paths.get("/tmp/runelite.fifo"), (json + System.lineSeparator()).getBytes());
         } catch (IOException e) {
             System.out.println("Couldn't write to fifo!");
         }
