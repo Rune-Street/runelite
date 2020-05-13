@@ -61,16 +61,12 @@ public class NeverLog extends Plugin {
 
     @Subscribe
     public void onGameTick(GameTick event) {
-        timer++;
-//		System.out.println("Ticked");
-        if (timer > 10) {
-            Executors.newSingleThreadExecutor().submit(this::getInventory);
-            Executors.newSingleThreadExecutor().submit(this::getGEOffers);
-            //                this.getInventory();
-            //                this.getGEOffers();
-
-            timer = 0;
-        }
+      timer++;
+      if (timer > 3) {
+          Executors.newSingleThreadExecutor().submit(this::getInventory);
+          Executors.newSingleThreadExecutor().submit(this::getGEOffers);
+          timer = 0;
+      }
 
         // if (checkIdleLogout())
         // {
@@ -150,16 +146,16 @@ public class NeverLog extends Plugin {
     }
 
     class GrandExchangeOfferClass {
-        public int quantity;
         public int id;
+        public int quantity;
         public int total_quantity;
         public int price;
         public int gold;
         public String offer_state;
 
         public GrandExchangeOfferClass() {
-            this.quantity = -1;
             this.id = -1;
+            this.quantity = -1;
             this.total_quantity = -1;
             this.price = -1;
             this.gold = -1;
@@ -167,8 +163,8 @@ public class NeverLog extends Plugin {
         }
 
         public GrandExchangeOfferClass(GrandExchangeOffer offer) {
-            this.quantity = offer.getQuantitySold();
             this.id = offer.getItemId();
+            this.quantity = offer.getQuantitySold();
             this.total_quantity = offer.getTotalQuantity();
             this.price = offer.getPrice();
             this.gold = offer.getSpent();
