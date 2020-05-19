@@ -63,8 +63,10 @@ public class NeverLog extends Plugin {
     public void onGameTick(GameTick event) {
       timer++;
       if (timer > 3) {
-          Executors.newSingleThreadExecutor().submit(this::getInventory);
-          Executors.newSingleThreadExecutor().submit(this::getGEOffers);
+          // Executors.newSingleThreadExecutor().submit(this::getInventory);
+          // Executors.newSingleThreadExecutor().submit(this::getGEOffers);
+          this.getInventory();
+          this.getGEOffers();
           timer = 0;
       }
 
@@ -99,25 +101,37 @@ public class NeverLog extends Plugin {
     class ItemDetailed {
         public int id;
         public int quantity;
-        public int slot;
+        public String state;
 
         public ItemDetailed() {
             this.id = -1;
             this.quantity = -1;
-            this.slot = -1;
+            // this.slot = -1;
+            this.state = "EMPTY";
         }
 
-        public ItemDetailed(Item item, int slot) {
+        public ItemDetailed(String state) {
+            this.id = -1;
+            this.quantity = -1;
+            // this.slot = slot;
+            this.state = state;
+        }
+
+        public ItemDetailed(Item item) {
             this.id = item.id;
             this.quantity = item.quantity;
-            this.slot = slot;
+            // this.slot = slot;
+            this.state = "OCCUPIED";
         }
     }
 
     private void getInventory() {
         final int INVENTORY_SIZE = 28;
         final ItemContainer itemContainer = client.getItemContainer(InventoryID.INVENTORY);
-        List<ItemDetailed> items = new ArrayList<ItemDetailed>();
+         List<ItemDetailed> items = new ArrayList<ItemDetailed>();
+        for (int i = 0; i < INVENTORY_SIZE; i++) {
+            items.add(new ItemDetailed());
+        }
 
         for (int slot = 0; slot < INVENTORY_SIZE; slot++) {
             Item item = itemContainer.getItem(slot);
@@ -125,10 +139,11 @@ public class NeverLog extends Plugin {
                 continue;
             }
             if (item.getQuantity() > 0) {
-                items.add(new ItemDetailed(item, slot));
+              items.set(slot, new ItemDetailed(item));
             } else {
-                System.out.println("No item found!");
+                items.set(slot, new ItemDetailed("ERROR"));
             }
+
         }
         Gson gson = new Gson();
         JsonObject container = new JsonObject();
@@ -159,7 +174,7 @@ public class NeverLog extends Plugin {
             this.total_quantity = -1;
             this.price = -1;
             this.gold = -1;
-            this.offer_state = "uninitialized";
+            this.offer_state = "UNITIALIZED";
         }
 
         public GrandExchangeOfferClass(GrandExchangeOffer offer) {
@@ -170,25 +185,25 @@ public class NeverLog extends Plugin {
             this.gold = offer.getSpent();
             switch (offer.getState()) {
                 case EMPTY:
-                    this.offer_state = "empty";
+                    this.offer_state = "EMPTY";
                     break;
                 case CANCELLED_BUY:
-                    this.offer_state = "cancelled_buy";
+                    this.offer_state = "CANCELLED_BUY";
                     break;
                 case CANCELLED_SELL:
-                    this.offer_state = "cancelled_sell";
+                    this.offer_state = "CANCELLED_SELL";
                     break;
                 case BUYING:
-                    this.offer_state = "buying";
+                    this.offer_state = "BUYING";
                     break;
                 case BOUGHT:
-                    this.offer_state = "bought";
+                    this.offer_state = "BOUGHT";
                     break;
                 case SELLING:
-                    this.offer_state = "selling";
+                    this.offer_state = "SELLING";
                     break;
                 case SOLD:
-                    this.offer_state = "sold";
+                    this.offer_state = "SOLD";
                     break;
             }
         }
