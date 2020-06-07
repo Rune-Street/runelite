@@ -66,6 +66,7 @@ public class NeverLog extends Plugin {
           // Executors.newSingleThreadExecutor().submit(this::getInventory);
           // Executors.newSingleThreadExecutor().submit(this::getGEOffers);
           this.getInventory();
+          this.getBank();
           this.getGEOffers();
           timer = 0;
       }
@@ -158,6 +159,34 @@ public class NeverLog extends Plugin {
         } catch (IOException e) {
             System.out.println("Couldn't write to fifo!");
         }
+    }
+
+    private void getBank() {
+      // ItemContainer itemContainer = client.getItemContainer(InventoryID.BANK);
+      final ItemContainer itemContainer = client.getItemContainer(InventoryID.BANK);
+      List<Item> items = new ArrayList<Item>();
+  		for (Item item : itemContainer.getItems()) {
+        if (item == null){
+          continue;
+        }
+        items.add(item);
+      }
+      Gson gson = new Gson();
+      JsonObject container = new JsonObject();
+      container.addProperty("type", "bank");
+      JsonElement data = gson.toJsonTree(items);
+      container.add("data", data);
+      String json = gson.toJson(container);
+      // System.out.println(json);
+
+      try {
+          Files.write(Paths.get("/tmp/runelite.fifo"), (json + System.lineSeparator()).getBytes());
+      } catch (IOException e) {
+          System.out.println("Couldn't write to fifo!");
+      }
+
+
+
     }
 
     class GrandExchangeOfferClass {
