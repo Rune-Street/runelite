@@ -129,6 +129,10 @@ public class NeverLog extends Plugin {
     private void getInventory() {
         final int INVENTORY_SIZE = 28;
         final ItemContainer itemContainer = client.getItemContainer(InventoryID.INVENTORY);
+        if (itemContainer == null)
+    		{
+          return;
+        }
          List<ItemDetailed> items = new ArrayList<ItemDetailed>();
         for (int i = 0; i < INVENTORY_SIZE; i++) {
             items.add(new ItemDetailed());
@@ -164,6 +168,10 @@ public class NeverLog extends Plugin {
     private void getBank() {
       // ItemContainer itemContainer = client.getItemContainer(InventoryID.BANK);
       final ItemContainer itemContainer = client.getItemContainer(InventoryID.BANK);
+      if (itemContainer == null)
+      {
+        return;
+      }
       List<Item> items = new ArrayList<Item>();
   		for (Item item : itemContainer.getItems()) {
         if (item == null){
