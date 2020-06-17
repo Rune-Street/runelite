@@ -21,19 +21,14 @@ import javax.inject.Inject;
 ;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.runelite.api.Client;
+import net.runelite.api.*;
+import net.runelite.api.coords.LocalPoint;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.GameTick;
+import net.runelite.api.events.GameStateChanged;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
-
-import net.runelite.api.InventoryID;
-import net.runelite.api.Item;
-import net.runelite.api.ItemContainer;
-
-
-import net.runelite.api.GrandExchangeOffer;
-import net.runelite.api.GrandExchangeOfferState;
 
 @PluginDescriptor(
         name = "Never Log",
@@ -61,15 +56,25 @@ public class NeverLog extends Plugin {
 
     @Subscribe
     public void onGameTick(GameTick event) {
-      timer++;
-      if (timer > 3) {
-          // Executors.newSingleThreadExecutor().submit(this::getInventory);
-          // Executors.newSingleThreadExecutor().submit(this::getGEOffers);
-          this.getInventory();
-          this.getBank();
-          this.getGEOffers();
-          timer = 0;
-      }
+//      timer++;
+//      if (timer > 2) {
+//          // Executors.newSingleThreadExecutor().submit(this::getInventory);
+//          // Executors.newSingleThreadExecutor().submit(this::getGEOffers);
+//
+////          this.getInventory();
+////          this.getBank();
+////          this.getGEOffers();
+//          this.playerlocation();
+//          timer = 0;
+//      }
+
+
+
+//        this.getPlayerLocation();
+
+//        Executors.newSingleThreadExecutor().submit(this::getInventory);
+//        Executors.newSingleThreadExecutor().submit(this::getGEOffers);
+       Executors.newSingleThreadExecutor().submit(this::getPlayerLocation);
 
         // if (checkIdleLogout())
         // {
@@ -95,6 +100,65 @@ public class NeverLog extends Plugin {
         );
     }
 
+    private void printFifo(String type, Object obj) {
+        Gson gson = new Gson();
+        JsonObject container = new JsonObject();
+        container.addProperty("type", type);
+        JsonElement data = gson.toJsonTree(obj);
+        container.add("data", data);
+        String json = gson.toJson(container);
+        try {
+            Files.write(Paths.get("/tmp/runelite.fifo"), (json + System.lineSeparator()).getBytes());
+        } catch (IOException e) {
+            System.out.println("Couldn't write to fifo!");
+        }
+    }
+    @Subscribe
+    public void onGameStateChanged(GameStateChanged event) {
+        GameState state = event.getGameState();
+        int s = state.getState();
+        GameState a = GameState.LOADING;
+        if (state == GameState.LOGIN_SCREEN) {
+            printFifo("gamestate", "LOGIN_SCREEN");
+        }
+    }
+
+    class LocationDetailed {
+        public int x;
+        public int y;
+        public LocationDetailed() {
+            this.x = -1;
+            this.y = -1;
+        }
+        public LocationDetailed(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+
+    }
+
+    private void getPlayerLocation() {
+        final WorldPoint playerPos = client.getLocalPlayer().getWorldLocation();
+        if (playerPos == null)
+        {
+//            return null;
+            return;
+        }
+
+
+        final LocalPoint playerPosLocal = LocalPoint.fromWorld(client, playerPos);
+        if (playerPosLocal == null)
+        {
+//            return null;
+            return;
+        }
+
+        System.out.printf("World (X: %d \t Y: %d)\n", playerPos.getX(), playerPos.getY());
+        LocationDetailed location = new LocationDetailed(playerPosLocal.getX(), playerPosLocal.getY());
+        this.printFifo("playerlocation", location);
+    }
+
+
     private static double clamp(double val) {
         return Math.max(1, Math.min(13000, val));
     }
@@ -119,8 +183,8 @@ public class NeverLog extends Plugin {
         }
 
         public ItemDetailed(Item item) {
-            this.id = item.id;
-            this.quantity = item.quantity;
+            this.id = item.getId();
+            this.quantity = item.getQuantity();
             // this.slot = slot;
             this.state = "OCCUPIED";
         }
