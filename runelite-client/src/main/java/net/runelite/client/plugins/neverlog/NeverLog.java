@@ -72,8 +72,8 @@ public class NeverLog extends Plugin {
 
 //        this.getPlayerLocation();
 
-//        Executors.newSingleThreadExecutor().submit(this::getInventory);
-//        Executors.newSingleThreadExecutor().submit(this::getGEOffers);
+       Executors.newSingleThreadExecutor().submit(this::getInventory);
+       Executors.newSingleThreadExecutor().submit(this::getGEOffers);
        Executors.newSingleThreadExecutor().submit(this::getPlayerLocation);
 
         // if (checkIdleLogout())
@@ -138,23 +138,22 @@ public class NeverLog extends Plugin {
     }
 
     private void getPlayerLocation() {
-        final WorldPoint playerPos = client.getLocalPlayer().getWorldLocation();
-        if (playerPos == null)
+        final WorldPoint playerPosWorld = client.getLocalPlayer().getWorldLocation();
+        if (playerPosWorld == null)
         {
-//            return null;
             return;
         }
 
 
-        final LocalPoint playerPosLocal = LocalPoint.fromWorld(client, playerPos);
+        final LocalPoint playerPosLocal = LocalPoint.fromWorld(client, playerPosWorld);
         if (playerPosLocal == null)
         {
-//            return null;
             return;
         }
 
-        System.out.printf("World (X: %d \t Y: %d)\n", playerPos.getX(), playerPos.getY());
-        LocationDetailed location = new LocationDetailed(playerPosLocal.getX(), playerPosLocal.getY());
+        // System.out.printf("World (X: %d \t Y: %d)\n", playerPosWorld.getX(), playerPosWorld.getY());
+        // LocationDetailed location = new LocationDetailed(playerPosLocal.getX(), playerPosLocal.getY());
+        LocationDetailed location = new LocationDetailed(playerPosWorld.getX(), playerPosWorld.getY());
         this.printFifo("playerlocation", location);
     }
 
@@ -178,14 +177,12 @@ public class NeverLog extends Plugin {
         public ItemDetailed(String state) {
             this.id = -1;
             this.quantity = -1;
-            // this.slot = slot;
             this.state = state;
         }
 
         public ItemDetailed(Item item) {
             this.id = item.getId();
             this.quantity = item.getQuantity();
-            // this.slot = slot;
             this.state = "OCCUPIED";
         }
     }
