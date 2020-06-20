@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y software-properties-common wget && \
     sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
     locale-gen && \
     fc-cache -f -v && \
-    mvn install -f /root/runelite/pom.xml -DskipTests -U && mkdir -p /root/runelite-client && mv /root/runelite/runelite-client/target/client-*-SNAPSHOT-shaded.jar /root/runelite-client/RuneLite.jar
+    mvn install -f /root/runelite/pom.xml -DskipTests -U && mkdir -p /root/runelite-client && mv /root/runelite/runelite-client/target/client-*-shaded.jar /root/runelite-client/RuneLite.jar
 
 
 FROM scratch
