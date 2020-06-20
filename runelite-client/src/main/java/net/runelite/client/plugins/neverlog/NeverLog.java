@@ -56,24 +56,9 @@ public class NeverLog extends Plugin {
 
     @Subscribe
     public void onGameTick(GameTick event) {
-//      timer++;
-//      if (timer > 2) {
-//          // Executors.newSingleThreadExecutor().submit(this::getInventory);
-//          // Executors.newSingleThreadExecutor().submit(this::getGEOffers);
-//
-////          this.getInventory();
-////          this.getBank();
-////          this.getGEOffers();
-//          this.playerlocation();
-//          timer = 0;
-//      }
-
-
-
-//        this.getPlayerLocation();
-
        Executors.newSingleThreadExecutor().submit(this::getInventory);
        Executors.newSingleThreadExecutor().submit(this::getGEOffers);
+       Executors.newSingleThreadExecutor().submit(this::getBank);
        Executors.newSingleThreadExecutor().submit(this::getPlayerLocation);
 
         // if (checkIdleLogout())
