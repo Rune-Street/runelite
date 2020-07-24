@@ -25,12 +25,17 @@
  */
 package net.runelite.http.api.worlds;
 
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import net.runelite.http.api.RuneLiteAPI;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
@@ -45,11 +50,28 @@ public class WorldClient
 
 	public WorldResult lookupWorlds() throws IOException
 	{
-		HttpUrl url = RuneLiteAPI.getApiBase().newBuilder()
-			.addPathSegment("worlds.js")
-			.build();
+//		HttpUrl url = RuneLiteAPI.getApiBase().newBuilder()
+//			.addPathSegment("worlds.js")
+//			.build();
+		// Actually curl THIS url: https://api.github.com/repos/runelite/runelite/git/refs/tags
+		// Get the last item in the array
+		// Get the ref
+		// Split on '-' and get the last split
 
-		log.debug("Built URI: {}", url);
+		// Final built URL should be in the form https://api.runelite.net/runelite-<VERSION_NUMBER>/worlds.js
+
+		String json = client.newCall(new Request.Builder().url("https://api.github.com/repos/runelite/runelite/git" +
+				"/refs/tags").build()).execute().body().string();
+
+		System.out.println("JSON: " + json);
+		GsonBuilder builder = new GsonBuilder();
+		Object jsonObj = builder.create().fromJson(json, Object.class);
+		List jsonList = ((List) jsonObj);
+		String last_ref = (String) ((Map) jsonList.get(jsonList.size() - 1)).get("ref");
+		String version_num = last_ref.substring(last_ref.lastIndexOf('-') + 1);
+
+		String url = "https://api.runelite.net/runelite-" + version_num + "/worlds.js";
+
 
 		Request request = new Request.Builder()
 			.url(url)

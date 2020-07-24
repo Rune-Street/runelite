@@ -15,10 +15,12 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
-;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.runelite.api.*;
@@ -30,6 +32,12 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 
+import static io.javalin.apibuilder.ApiBuilder.path;
+import static io.javalin.apibuilder.ApiBuilder.get;
+import static net.runelite.api.Perspective.localToCanvas;
+
+import io.javalin.Javalin;
+
 @PluginDescriptor(
         name = "Never Log",
         description = "Enable this and you will never log out"
@@ -40,15 +48,35 @@ public class NeverLog extends Plugin {
     @Inject
     private Client client;
 
-    int timer = 0;
-    private Random random = new Random();
-    private long randomDelay;
+    public void runJavalin() {
+        Javalin app = Javalin.create().start(8080);
+        app.routes(() -> {
+            get("liveness", ctx -> ctx.result("Ready"));
+            get("state", ctx -> ctx.result(this.getGameState()));
+            get("location", ctx -> ctx.result(this.getPlayerLocation()));
+            get("inventory", ctx -> ctx.result(this.getInventory()));
+            get("bank", ctx -> ctx.result(this.getBank()));
+            get("ge", ctx -> ctx.result(this.getGEOffers()));
+            path("h", () -> {
+                get("liveness", ctx -> ctx.result("Ready" + '\n'));
+                get("state", ctx -> ctx.result(this.getGameState() + '\n'));
+                get("location", ctx -> ctx.result(this.getPlayerLocation() + '\n'));
+                get("inventory", ctx -> ctx.result(this.getInventory() + '\n'));
+                get("bank", ctx -> ctx.result(this.getBank() + '\n'));
+                get("ge", ctx -> ctx.result(this.getGEOffers() + '\n'));
+            });
+        });
 
-    @Override
-    protected void startUp() {
-        randomDelay = randomDelay();
     }
 
+    // Called upon plugin startup?
+    // Look into putting GRPC stuff --HERE--
+    @Override
+    protected void startUp() {
+        Executors.newSingleThreadExecutor().submit(this::runJavalin);
+    }
+
+    // Called upon plugin removal?
     @Override
     protected void shutDown() {
 
@@ -56,65 +84,43 @@ public class NeverLog extends Plugin {
 
     @Subscribe
     public void onGameTick(GameTick event) {
-       Executors.newSingleThreadExecutor().submit(this::getInventory);
-       Executors.newSingleThreadExecutor().submit(this::getGEOffers);
-       Executors.newSingleThreadExecutor().submit(this::getBank);
-       Executors.newSingleThreadExecutor().submit(this::getPlayerLocation);
 
-        // if (checkIdleLogout())
-        // {
-        //  randomDelay = randomDelay();
-        //  Executors.newSingleThreadExecutor()
-        //    .submit(this::pressKey);
-        // }
     }
 
-    private boolean checkIdleLogout() {
-        int idleClientTicks = client.getKeyboardIdleTicks();
-
-        if (client.getMouseIdleTicks() < idleClientTicks) {
-            idleClientTicks = client.getMouseIdleTicks();
-        }
-
-        return idleClientTicks >= randomDelay;
-    }
-
-    private long randomDelay() {
-        return (long) clamp(
-                Math.round(random.nextGaussian() * 800)
-        );
-    }
-
-    private void printFifo(String type, Object obj) {
+    private String toJson(String type, Object obj) {
         Gson gson = new Gson();
         JsonObject container = new JsonObject();
         container.addProperty("type", type);
         JsonElement data = gson.toJsonTree(obj);
         container.add("data", data);
-        String json = gson.toJson(container);
-        try {
-            Files.write(Paths.get("/tmp/runelite.fifo"), (json + System.lineSeparator()).getBytes());
-        } catch (IOException e) {
-            System.out.println("Couldn't write to fifo!");
-        }
+        String result = gson.toJson(container);
+        return result.equals("") ? "[]" : result;
     }
-    @Subscribe
-    public void onGameStateChanged(GameStateChanged event) {
-        GameState state = event.getGameState();
-        int s = state.getState();
-        GameState a = GameState.LOADING;
-        if (state == GameState.LOGIN_SCREEN) {
-            printFifo("gamestate", "LOGIN_SCREEN");
-        }
+
+//    @Subscribe
+//    public void onGameStateChanged(GameStateChanged event) {
+//        GameState state = event.getGameState();
+//        int s = state.getState();
+//        GameState a = GameState.LOADING;
+//        if (state == GameState.LOGIN_SCREEN) {
+//            printFifo("gamestate", "LOGIN_SCREEN");
+//        }
+//    }
+
+    private String getGameState() {
+        GameState state = client.getGameState();
+        return toJson("gamestate", state.toString());
     }
 
     class LocationDetailed {
         public int x;
         public int y;
+
         public LocationDetailed() {
             this.x = -1;
             this.y = -1;
         }
+
         public LocationDetailed(int x, int y) {
             this.x = x;
             this.y = y;
@@ -122,24 +128,36 @@ public class NeverLog extends Plugin {
 
     }
 
-    private void getPlayerLocation() {
-        final WorldPoint playerPosWorld = client.getLocalPlayer().getWorldLocation();
-        if (playerPosWorld == null)
-        {
-            return;
+    private String getPlayerLocation() {
+        final Player player = client.getLocalPlayer();
+        final WorldPoint playerPosWorld;
+        if (player != null) {
+            playerPosWorld = player.getWorldLocation();
+        } else {
+            return "";
         }
 
-
         final LocalPoint playerPosLocal = LocalPoint.fromWorld(client, playerPosWorld);
-        if (playerPosLocal == null)
-        {
-            return;
+        if (playerPosLocal == null) {
+            return "";
         }
 
         // System.out.printf("World (X: %d \t Y: %d)\n", playerPosWorld.getX(), playerPosWorld.getY());
         // LocationDetailed location = new LocationDetailed(playerPosLocal.getX(), playerPosLocal.getY());
+//        Tile t = client.getSelectedSceneTile();
+//        Point p = null;
+//        if (t != null) {
+//            p = localToCanvas(client, t.getLocalLocation(), 0);
+//        }
+//        System.out.printf("Selected tile pixel location: (X: %d \t Y: %d)\n", p.getX(), p.getY());
+
+
+        // Pixel location starts at the top left corner of the "game area", not necessarily the entire window
+        // Need to add the thickness of the title bar to get accurate screen locations
+
         LocationDetailed location = new LocationDetailed(playerPosWorld.getX(), playerPosWorld.getY());
-        this.printFifo("playerlocation", location);
+
+        return this.toJson("playerlocation", location);
     }
 
 
@@ -172,75 +190,43 @@ public class NeverLog extends Plugin {
         }
     }
 
-    private void getInventory() {
+    private String getInventory() {
         final int INVENTORY_SIZE = 28;
         final ItemContainer itemContainer = client.getItemContainer(InventoryID.INVENTORY);
-        if (itemContainer == null)
-    		{
-          return;
+        if (itemContainer == null) {
+            return "[]";
         }
-         List<ItemDetailed> items = new ArrayList<ItemDetailed>();
+        List<ItemDetailed> items = new ArrayList<>();
         for (int i = 0; i < INVENTORY_SIZE; i++) {
             items.add(new ItemDetailed());
         }
 
         for (int slot = 0; slot < INVENTORY_SIZE; slot++) {
             Item item = itemContainer.getItem(slot);
-            if (item == null) {
-                continue;
+            if (item != null) {
+                if (item.getQuantity() > 0) {
+                    items.set(slot, new ItemDetailed(item));
+                } else {
+                    items.set(slot, new ItemDetailed("ERROR"));
+                }
             }
-            if (item.getQuantity() > 0) {
-              items.set(slot, new ItemDetailed(item));
-            } else {
-                items.set(slot, new ItemDetailed("ERROR"));
-            }
-
         }
-        Gson gson = new Gson();
-        JsonObject container = new JsonObject();
-        container.addProperty("type", "inventory");
-        JsonElement data = gson.toJsonTree(items);
-        container.add("data", data);
-        String json = gson.toJson(container);
-        // System.out.println(json);
-
-        try {
-            Files.write(Paths.get("/tmp/runelite.fifo"), (json + System.lineSeparator()).getBytes());
-        } catch (IOException e) {
-            System.out.println("Couldn't write to fifo!");
-        }
+        return this.toJson("inventory", items);
     }
 
-    private void getBank() {
-      // ItemContainer itemContainer = client.getItemContainer(InventoryID.BANK);
-      final ItemContainer itemContainer = client.getItemContainer(InventoryID.BANK);
-      if (itemContainer == null)
-      {
-        return;
-      }
-      List<Item> items = new ArrayList<Item>();
-  		for (Item item : itemContainer.getItems()) {
-        if (item == null){
-          continue;
+    private String getBank() {
+        // ItemContainer itemContainer = client.getItemContainer(InventoryID.BANK);
+        final ItemContainer itemContainer = client.getItemContainer(InventoryID.BANK);
+        if (itemContainer == null) {
+            return "[]";
         }
-        items.add(item);
-      }
-      Gson gson = new Gson();
-      JsonObject container = new JsonObject();
-      container.addProperty("type", "bank");
-      JsonElement data = gson.toJsonTree(items);
-      container.add("data", data);
-      String json = gson.toJson(container);
-      // System.out.println(json);
-
-      try {
-          Files.write(Paths.get("/tmp/runelite.fifo"), (json + System.lineSeparator()).getBytes());
-      } catch (IOException e) {
-          System.out.println("Couldn't write to fifo!");
-      }
-
-
-
+        List<Item> items = new ArrayList<>();
+        for (Item item : itemContainer.getItems()) {
+            if (item != null) {
+                items.add(item);
+            }
+        }
+        return this.toJson("bank", items);
     }
 
     class GrandExchangeOfferClass {
@@ -292,25 +278,20 @@ public class NeverLog extends Plugin {
         }
     }
 
-    private void getGEOffers() {
+    private String getGEOffers() {
         GrandExchangeOffer[] geOfferInterfaces = client.getGrandExchangeOffers();
-        List<GrandExchangeOfferClass> geOffers = new ArrayList<GrandExchangeOfferClass>();
+        List<GrandExchangeOfferClass> geOffers = new ArrayList<>();
         for (GrandExchangeOffer offerInterface : geOfferInterfaces) {
-            geOffers.add(new GrandExchangeOfferClass(offerInterface));
+            if (offerInterface != null) {
+                geOffers.add(new GrandExchangeOfferClass(offerInterface));
+            }
+        }
+        geOffers = geOffers.stream().filter(Objects::isNull).collect(Collectors.toList());
+
+        if (geOffers.size() == 0) {
+            return "[]";
         }
 
-        Gson gson = new Gson();
-        JsonObject container = new JsonObject();
-        container.addProperty("type", "ge");
-        JsonElement data = gson.toJsonTree(geOffers);
-        container.add("data", data);
-        String json = gson.toJson(container);
-        // System.out.println(json);
-
-        try {
-            Files.write(Paths.get("/tmp/runelite.fifo"), (json + System.lineSeparator()).getBytes());
-        } catch (IOException e) {
-            System.out.println("Couldn't write to fifo!");
-        }
+        return this.toJson("ge", geOffers);
     }
 }
