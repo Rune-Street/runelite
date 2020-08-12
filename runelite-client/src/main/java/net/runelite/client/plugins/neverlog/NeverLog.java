@@ -94,7 +94,7 @@ public class NeverLog extends Plugin {
         JsonElement data = gson.toJsonTree(obj);
         container.add("data", data);
         String result = gson.toJson(container);
-        return result.equals("") ? "[]" : result;
+        return !result.equals("") ? result : "[]";
     }
 
 //    @Subscribe
@@ -134,12 +134,12 @@ public class NeverLog extends Plugin {
         if (player != null) {
             playerPosWorld = player.getWorldLocation();
         } else {
-            return "";
+            return "[]";
         }
 
         final LocalPoint playerPosLocal = LocalPoint.fromWorld(client, playerPosWorld);
         if (playerPosLocal == null) {
-            return "";
+            return "[]";
         }
 
         // System.out.printf("World (X: %d \t Y: %d)\n", playerPosWorld.getX(), playerPosWorld.getY());
@@ -194,7 +194,7 @@ public class NeverLog extends Plugin {
         final int INVENTORY_SIZE = 28;
         final ItemContainer itemContainer = client.getItemContainer(InventoryID.INVENTORY);
         if (itemContainer == null) {
-            return "[]";
+            return this.toJson("inventory", new ArrayList<String>());
         }
         List<ItemDetailed> items = new ArrayList<>();
         for (int i = 0; i < INVENTORY_SIZE; i++) {
@@ -218,7 +218,7 @@ public class NeverLog extends Plugin {
         // ItemContainer itemContainer = client.getItemContainer(InventoryID.BANK);
         final ItemContainer itemContainer = client.getItemContainer(InventoryID.BANK);
         if (itemContainer == null) {
-            return "[]";
+            return this.toJson("bank", new ArrayList<String>());
         }
         List<Item> items = new ArrayList<>();
         for (Item item : itemContainer.getItems()) {
@@ -286,10 +286,10 @@ public class NeverLog extends Plugin {
                 geOffers.add(new GrandExchangeOfferClass(offerInterface));
             }
         }
-        geOffers = geOffers.stream().filter(Objects::isNull).collect(Collectors.toList());
+        geOffers = geOffers.stream().filter(Objects::nonNull).collect(Collectors.toList());
 
         if (geOffers.size() == 0) {
-            return "[]";
+            return this.toJson("ge", new ArrayList<String>());
         }
 
         return this.toJson("ge", geOffers);

@@ -53,6 +53,7 @@ public class WorldClient
 //		HttpUrl url = RuneLiteAPI.getApiBase().newBuilder()
 //			.addPathSegment("worlds.js")
 //			.build();
+
 		// Actually curl THIS url: https://api.github.com/repos/runelite/runelite/git/refs/tags
 		// Get the last item in the array
 		// Get the ref
@@ -63,7 +64,6 @@ public class WorldClient
 		String json = client.newCall(new Request.Builder().url("https://api.github.com/repos/runelite/runelite/git" +
 				"/refs/tags").build()).execute().body().string();
 
-		System.out.println("JSON: " + json);
 		GsonBuilder builder = new GsonBuilder();
 		Object jsonObj = builder.create().fromJson(json, Object.class);
 		List jsonList = ((List) jsonObj);
