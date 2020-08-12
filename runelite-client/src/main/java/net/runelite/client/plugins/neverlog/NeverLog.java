@@ -192,26 +192,31 @@ public class NeverLog extends Plugin {
 
     private String getInventory() {
         final int INVENTORY_SIZE = 28;
-        final ItemContainer itemContainer = client.getItemContainer(InventoryID.INVENTORY);
-        if (itemContainer == null) {
-            return this.toJson("inventory", new ArrayList<String>());
-        }
-        List<ItemDetailed> items = new ArrayList<>();
-        for (int i = 0; i < INVENTORY_SIZE; i++) {
-            items.add(new ItemDetailed());
-        }
+        try {
+            final ItemContainer itemContainer = client.getItemContainer(InventoryID.INVENTORY);
+            if (itemContainer == null) {
+                return this.toJson("inventory", new ArrayList<String>());
+            }
+            List<ItemDetailed> items = new ArrayList<>();
+            for (int i = 0; i < INVENTORY_SIZE; i++) {
+                items.add(new ItemDetailed());
+            }
 
-        for (int slot = 0; slot < INVENTORY_SIZE; slot++) {
-            Item item = itemContainer.getItem(slot);
-            if (item != null) {
-                if (item.getQuantity() > 0) {
-                    items.set(slot, new ItemDetailed(item));
-                } else {
-                    items.set(slot, new ItemDetailed("ERROR"));
+            for (int slot = 0; slot < INVENTORY_SIZE; slot++) {
+                Item item = itemContainer.getItem(slot);
+                if (item != null) {
+                    if (item.getQuantity() > 0) {
+                        items.set(slot, new ItemDetailed(item));
+                    } else {
+                        items.set(slot, new ItemDetailed("ERROR"));
+                    }
                 }
             }
+            return this.toJson("inventory", items);
         }
-        return this.toJson("inventory", items);
+        catch (NullPointerException e){
+            return this.toJson("error", e);
+        }
     }
 
     private String getBank() {
